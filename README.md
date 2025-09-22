@@ -97,6 +97,40 @@ python -m http.server 8080
 
 Navigate to `http://localhost:8080`
 
+## ⚠️ Important Note: Model Files
+
+**The trained BERT model is not included in this repository due to its large file size (~440MB).**
+
+### 📥 Getting the Model
+
+You have two options to obtain the model:
+
+#### Option 1: Download Pre-trained Model
+
+- The trained model can be downloaded from [ask me if interested.]
+- Extract the model files to: `Sentiment_Analyzer_System/api/model/bert-sentiment/`
+
+#### Option 2: Train Your Own Model
+
+1. Navigate to the `Model_Creation/` directory
+2. Open `model_creator.ipynb` in Jupyter Notebook
+3. Follow the training pipeline to create your own fine-tuned BERT model
+4. The trained model will be automatically saved to the correct location
+
+### 📁 Expected Model Structure
+
+```
+Sentiment_Analyzer_System/api/model/bert-sentiment/
+├── config.json
+├── model.safetensors
+├── tokenizer.json
+├── tokenizer_config.json
+├── special_tokens_map.json
+└── vocab.txt
+```
+
+**Note:** The API server will not start without the model files. Please ensure you have the model files in place before running the application.
+
 ## 📚 API Documentation
 
 ### Base URL
