@@ -67,7 +67,7 @@ Sentiment_Analyzer/
 ### 1. Clone and Setup
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/sulavghimiree/Sentiment_Analyzer_Using_BERT_Transformers
 cd Sentiment_Analyzer
 ```
 
