@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sentiment Analyzer</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #121a33;
+        --muted: #8a95b5;
+        --text: #e8ecff;
+        --accent: #6ea8fe;
+        --good: #22c55e;
+        --neutral: #a1a1aa;
+        --bad: #ef4444;
+        --warning: #f59e0b;
+        --border: #1f2a4d;
+        --chip: #1a2447;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, \"Helvetica Neue\", Arial, \"Noto Sans\", \"Apple Color Emoji\", \"Segoe UI Emoji\";
+        color: var(--text);
+        background: radial-gradient(
+            1200px 600px at 20% -10%,
+            #192247,
+            transparent
+          ),
+          radial-gradient(1000px 500px at 100% 0%, #0f1530, transparent),
+          var(--bg);
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      header h1 {
+        font-size: clamp(20px, 3vw, 28px);
+        margin: 0;
+      }
+      .tag {
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: var(--chip);
+        color: var(--muted);
+        font-size: 12px;
+        border: 1px solid var(--border);
+      }
+      .panel {
+        background: rgba(18, 26, 51, 0.7);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: clip;
+      }
+      .panel-body {
+        padding: 16px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 16px;
+      }
+      @media (max-width: 880px) {
+        .row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* controls */
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .api-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--neutral);
+        box-shadow: 0 0 0 2px #0003;
+      }
+      .dot.ok {
+        background: var(--good);
+      }
+      .dot.warn {
+        background: var(--warning);
+      }
+      .dot.err {
+        background: var(--bad);
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .input-inline {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .input-inline input {
+        width: 320px;
+        max-width: 60vw;
+        padding: 8px 10px;
+        background: #0f1530;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+      }
+      button,
+      .button {
+        background: linear-gradient(180deg, #2a54e6, #2247c2);
+        border: 1px solid #2d49a3;
+        color: white;
+        padding: 10px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+
+      /* text area */
+      textarea {
+        width: 100%;
+        min-height: 150px;
+        resize: vertical;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: #0f1530;
+        color: var(--text);
+        font-size: 15px;
+        line-height: 1.5;
+      }
+      .help {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 8px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        background: var(--chip);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 6px 10px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      /* result */
+      .result {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: #0f1530;
+      }
+      .badge .pill {
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+      .pill.pos {
+        background: #063d23;
+        color: #8bf0b2;
+        border: 1px solid #0f5b36;
+      }
+      .pill.neu {
+        background: #2a2a32;
+        color: #d4d4d8;
+        border: 1px solid #3b3b46;
+      }
+      .pill.neg {
+        background: #470f15;
+        color: #ffacb3;
+        border: 1px solid #6b141c;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .bar {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .bar .track {
+        background: #0f1530;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        height: 12px;
+        overflow: hidden;
+      }
+      .bar .fill {
+        height: 100%;
+        width: 0%;
+        transition: width 220ms ease;
+      }
+      .fill.neg {
+        background: linear-gradient(90deg, #7f1d1d, #ef4444);
+      }
+      .fill.neu {
+        background: linear-gradient(90deg, #2a2a32, #a1a1aa);
+      }
+      .fill.pos {
+        background: linear-gradient(90deg, #064e3b, #22c55e);
+      }
+      .errbox {
+        background: #3b0a0a;
+        border: 1px solid #7f1d1d;
+        color: #fecaca;
+        padding: 10px;
+        border-radius: 10px;
+        display: none;
+      }
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff33;
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        display: none;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      footer {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 12px;
+        text-align: center;
+      }
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Sentiment Analyzer</h1>
+        <span class="tag">BERT • 3-class</span>
+      </header>
+
+      <div class="panel">
+        <div class="panel-body">
+          <div class="controls">
+            <div class="api-status">
+              <span id="statusDot" class="dot"></span>
+              <span id="statusText" class="muted">Checking API…</span>
+              <div id="loadingSpin" class="spinner" aria-hidden="true"></div>
+            </div>
+            <div class="input-inline" title="API base URL (saved locally)">
+              <span class="muted">API:</span>
+              <input id="apiBase" placeholder="http://127.0.0.1:5000" />
+              <button id="saveApiBtn" class="ghost">Save</button>
+              <button id="pingBtn" class="ghost">Ping</button>
+            </div>
+          </div>
+
+          <div class="row">
+            <section>
+              <label for="text" class="muted">Enter text to analyze</label>
+              <textarea
+                id="text"
+                placeholder="Type or paste some text…"
+              ></textarea>
+              <div class="help">
+                <div class="chips">
+                  <span
+                    class="chip"
+                    data-sample="I absolutely love this product. It exceeded my expectations!"
+                    >Great review</span
+                  >
+                  <span
+                    class="chip"
+                    data-sample="It's okay, does the job but nothing special."
+                    >Neutral take</span
+                  >
+                  <span
+                    class="chip"
+                    data-sample="Terrible experience. It broke after one day and support was unhelpful."
+                    >Bad experience</span
+                  >
+                </div>
+                <div class="muted" id="charCount">0 chars</div>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  gap: 10px;
+                  align-items: center;
+                  margin-top: 12px;
+                "
+              >
+                <button id="analyzeBtn" disabled>Analyze Sentiment</button>
+                <div id="reqSpin" class="spinner" aria-hidden="true"></div>
+                <span id="reqMsg" class="muted"></span>
+              </div>
+              <div id="errorBox" class="errbox" role="alert"></div>
+            </section>
+
+            <aside class="panel">
+              <div class="panel-body result">
+                <div class="muted">Prediction</div>
+                <div class="badge">
+                  <span class="muted">Label:</span>
+                  <span id="labelPill" class="pill neu">—</span>
+                  <span class="muted" style="margin-left: auto"
+                    >Confidence:</span
+                  >
+                  <strong id="conf">—</strong>
+                </div>
+                <div class="grid">
+                  <div class="bar">
+                    <div style="display: flex; justify-content: space-between">
+                      <span>Negative</span>
+                      <span id="negVal" class="muted">0%</span>
+                    </div>
+                    <div class="track">
+                      <div id="negBar" class="fill neg"></div>
+                    </div>
+                  </div>
+                  <div class="bar">
+                    <div style="display: flex; justify-content: space-between">
+                      <span>Neutral</span>
+                      <span id="neuVal" class="muted">0%</span>
+                    </div>
+                    <div class="track">
+                      <div id="neuBar" class="fill neu"></div>
+                    </div>
+                  </div>
+                  <div class="bar">
+                    <div style="display: flex; justify-content: space-between">
+                      <span>Positive</span>
+                      <span id="posVal" class="muted">0%</span>
+                    </div>
+                    <div class="track">
+                      <div id="posBar" class="fill pos"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="muted" id="timestamp"></div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        Uses your local API at <code>/predict</code>. If opening this file
+        directly, set API to <code>http://127.0.0.1:5000</code> and ensure CORS
+        is enabled on the server.
+      </footer>
+    </div>
+
+    <script>
+      const els = {
+        statusDot: document.getElementById("statusDot"),
+        statusText: document.getElementById("statusText"),
+        loadingSpin: document.getElementById("loadingSpin"),
+        apiBase: document.getElementById("apiBase"),
+        saveApiBtn: document.getElementById("saveApiBtn"),
+        pingBtn: document.getElementById("pingBtn"),
+        ta: document.getElementById("text"),
+        analyzeBtn: document.getElementById("analyzeBtn"),
+        reqSpin: document.getElementById("reqSpin"),
+        reqMsg: document.getElementById("reqMsg"),
+        err: document.getElementById("errorBox"),
+        labelPill: document.getElementById("labelPill"),
+        conf: document.getElementById("conf"),
+        negBar: document.getElementById("negBar"),
+        neuBar: document.getElementById("neuBar"),
+        posBar: document.getElementById("posBar"),
+        negVal: document.getElementById("negVal"),
+        neuVal: document.getElementById("neuVal"),
+        posVal: document.getElementById("posVal"),
+        time: document.getElementById("timestamp"),
+        charCount: document.getElementById("charCount"),
+      };
+
+      function inferDefaultApiBase() {
+        const isFile =
+          location.protocol === "file:" || location.origin === "null";
+        if (isFile) return "http://127.0.0.1:5000";
+        return location.origin; // assume same origin if hosted
+      }
+
+      function getApiBase() {
+        return (
+          localStorage.getItem("apiBase") || inferDefaultApiBase()
+        ).replace(/\/$/, "");
+      }
+
+      function setStatus(kind, text) {
+        els.statusDot.className = "dot " + (kind || "");
+        els.statusText.textContent = text;
+      }
+
+      async function ping() {
+        els.loadingSpin.style.display = "inline-block";
+        const base = getApiBase();
+        try {
+          const r = await fetch(base + "/health", { method: "GET" });
+          if (!r.ok) {
+            throw new Error("HTTP " + r.status);
+          }
+          const j = await r.json();
+          const modelLoaded = j.model_loaded ?? false;
+          setStatus(
+            modelLoaded ? "ok" : "warn",
+            modelLoaded ? `Healthy • ${j.device}` : "API up, model not loaded"
+          );
+        } catch (err) {
+          setStatus("err", "Cannot reach API");
+        } finally {
+          els.loadingSpin.style.display = "none";
+        }
+      }
+
+      function updateCharCount() {
+        const n = els.ta.value.length;
+        els.charCount.textContent = n + " chars";
+        els.analyzeBtn.disabled = n === 0;
+      }
+
+      function setLabel(label) {
+        const map = { Positive: "pos", Neutral: "neu", Negative: "neg" };
+        const cls = map[label] || "neu";
+        els.labelPill.className = "pill " + cls;
+        els.labelPill.textContent = label;
+      }
+
+      function setBars(scores) {
+        const clamp = (x) => Math.max(0, Math.min(1, x || 0));
+        const neg = clamp(scores.Negative),
+          neu = clamp(scores.Neutral),
+          pos = clamp(scores.Positive);
+        const np = (neg * 100).toFixed(1) + "%";
+        const neup = (neu * 100).toFixed(1) + "%";
+        const pp = (pos * 100).toFixed(1) + "%";
+        els.negBar.style.width = np;
+        els.negVal.textContent = np;
+        els.neuBar.style.width = neup;
+        els.neuVal.textContent = neup;
+        els.posBar.style.width = pp;
+        els.posVal.textContent = pp;
+      }
+
+      function showError(msg) {
+        els.err.style.display = "block";
+        els.err.textContent = msg;
+      }
+      function clearError() {
+        els.err.style.display = "none";
+        els.err.textContent = "";
+      }
+
+      async function analyze() {
+        clearError();
+        els.reqMsg.textContent = "";
+        const text = (els.ta.value || "").trim();
+        if (!text) {
+          showError("Please enter some text.");
+          return;
+        }
+        els.reqSpin.style.display = "inline-block";
+        els.analyzeBtn.disabled = true;
+        const base = getApiBase();
+        try {
+          const res = await fetch(base + "/predict", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
+          });
+          const payload = await res.json().catch(() => ({}));
+          if (!res.ok || payload.error) {
+            throw new Error(payload.error || "HTTP " + res.status);
+          }
+          const r = payload.result || payload; // be tolerant
+          setLabel(r.prediction || "—");
+          const conf =
+            r.confidence != null ? (r.confidence * 100).toFixed(2) + "%" : "—";
+          els.conf.textContent = conf;
+          setBars(r.all_scores || { Negative: 0, Neutral: 0, Positive: 0 });
+          els.time.textContent = r.timestamp
+            ? new Date(r.timestamp).toLocaleString()
+            : "";
+          els.reqMsg.textContent = "Done";
+        } catch (err) {
+          showError(
+            "Request failed: " +
+              err.message +
+              "\nTip: If opening this file directly, set API to http://127.0.0.1:5000 and enable CORS on the server."
+          );
+        } finally {
+          els.reqSpin.style.display = "none";
+          els.analyzeBtn.disabled = els.ta.value.length === 0;
+        }
+      }
+
+      // Wire up
+      els.apiBase.value = getApiBase();
+      els.saveApiBtn.addEventListener("click", () => {
+        const val = els.apiBase.value.trim();
+        if (val) {
+          localStorage.setItem("apiBase", val);
+          setStatus("", "Saved API base");
+          ping();
+        }
+      });
+      els.pingBtn.addEventListener("click", ping);
+      els.analyzeBtn.addEventListener("click", analyze);
+      els.ta.addEventListener("input", updateCharCount);
+      els.ta.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+          analyze();
+        }
+      });
+      document.querySelectorAll(".chip[data-sample]").forEach((ch) => {
+        ch.addEventListener("click", () => {
+          els.ta.value = ch.getAttribute("data-sample");
+          updateCharCount();
+        });
+      });
+
+      // Initial
+      updateCharCount();
+      ping();
+    </script>
+  </body>
+</html>
